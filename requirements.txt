@@ -1,0 +1,9 @@
+# requirements.txt
+
+discord
+discord.ext
+certifi
+cloudscraper # Cloudflare 우회 세션 설정
+requests
+dotenv
+bs4
