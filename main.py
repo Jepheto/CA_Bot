@@ -6,6 +6,8 @@ import os
 import requests
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import time_conversion_system
 
@@ -23,6 +25,28 @@ discordBot_Token = os.getenv("discordBot_Token")
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+# 헬스 체크용 HTTP 서버 클래스 정의
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
+    def log_message(self, format, *args):
+        # 불필요한 로그 출력 방지
+        return
+
+def run_health_server():
+    # 환경 변수에서 포트 번호를 가져오고, 없으면 기본값 3000 사용
+    port = int(os.environ.get("PORT", 3000))
+    server_address = ('0.0.0.0', port)
+    httpd = HTTPServer(server_address, HealthHandler)
+    print(f"Health server running on port {port}...")
+    httpd.serve_forever()
+
+# 백그라운드 스레드에서 헬스 체크 서버 실행 (Render에서는 포트 바인딩 테스트에 사용됨)
+threading.Thread(target=run_health_server, daemon=True).start()
 
 @bot.event
 async def on_ready():
@@ -77,7 +101,7 @@ async def on_message(message):
             if img_tag and img_tag.has_attr('src'):
                 absolute_img_src = img_tag['src']
                 
-                print("passed here!") # for debug
+                print("passed here!")  # for debug
 
         # JSON 데이터 파싱
         CA_login_data = CA_response2.json()
@@ -120,4 +144,5 @@ async def on_message(message):
 
         await message.channel.send(embed=embed)
 
+# Discord 봇 실행 (기존 방식)
 bot.run(discordBot_Token)
